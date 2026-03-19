@@ -18,7 +18,7 @@ from creative_tagger import CreativeTagger
 ct = CreativeTagger(api_key="ct_...")
 
 # Analyze a video ad
-result = ct.analyze("./ad_video.mp4", brand="Nemah")
+result = ct.analyze("./ad_video.mp4", brand="Brand")
 print(result.naming.default)
 # → NEMAH_UGC_Creator_LoFi_VOMus-Pop-Conv_ShopNow_9x16_30s_V1
 
@@ -40,7 +40,7 @@ print(result.email_structure)     # → SingleCTA
 ## Batch Analysis
 
 ```python
-results = ct.analyze_batch(["ad1.mp4", "ad2.jpg", "ad3.png"], brand="Nemah")
+results = ct.analyze_batch(["ad1.mp4", "ad2.jpg", "ad3.png"], brand="Brand")
 
 # Export to CSV-ready rows
 import csv
@@ -50,7 +50,7 @@ rows = [r.to_row() for r in results]
 ## Async Support
 
 ```python
-result = await ct.analyze_async("./ad.mp4", brand="Nemah")
+result = await ct.analyze_async("./ad.mp4", brand="Brand")
 ```
 
 ## Local Development

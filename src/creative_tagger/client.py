@@ -14,13 +14,13 @@ class CreativeTagger:
         ct = CreativeTagger(api_key="ct_...")
 
         # Analyze a local file
-        result = ct.analyze("./ad_video.mp4", brand="Nemah")
+        result = ct.analyze("./ad_video.mp4", brand="Brand")
 
         # Analyze a URL
-        result = ct.analyze_url("https://example.com/landing", brand="Nemah")
+        result = ct.analyze_url("https://example.com/landing", brand="Brand")
 
         # Analyze email HTML
-        result = ct.analyze_email("<html>...</html>", brand="Nemah")
+        result = ct.analyze_email("<html>...</html>", brand="Brand")
 
         # Access results
         print(result.naming.default)
