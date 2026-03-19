@@ -20,7 +20,7 @@ ct = CreativeTagger(api_key="ct_...")
 # Analyze a video ad
 result = ct.analyze("./ad_video.mp4", brand="Brand")
 print(result.naming.default)
-# → NEMAH_UGC_Creator_LoFi_VOMus-Pop-Conv_ShopNow_9x16_30s_V1
+# → BRAND_UGC_Creator_LoFi_VOMus-Pop-Conv_ShopNow_9x16_30s_V1
 
 print(result.visual.hook_type)    # → UGC
 print(result.messaging_angle)     # → ProbSol
