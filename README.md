@@ -20,12 +20,12 @@ ct = CreativeTagger(api_key="ct_...")
 # Analyze a video ad
 result = ct.analyze("./ad_video.mp4", brand="Brand")
 print(result.naming.default)
-# → BRAND_UGC_Creator_LoFi_VOMus-Pop-Conv_ShopNow_9x16_30s_V1
+# → Brand_UGC_Question_Pain Point_Shop Now_9x16_30s
 
-print(result.visual.hook_type)    # → UGC
-print(result.messaging_angle)     # → ProbSol
+print(result.attributes.hook_type)        # → Question
+print(result.attributes.messaging_angle)  # → Pain Point
 print(result.creative_type)       # → Testimonial
-print(result.production_type)     # → LoFiUGC
+print(result.attributes.visual_style)    # → Lo-Fi
 print(result.offer_type)          # → PctOff
 
 # Analyze a landing page
