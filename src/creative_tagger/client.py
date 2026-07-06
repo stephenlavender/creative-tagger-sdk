@@ -31,7 +31,7 @@ class CreativeTagger:
     def __init__(
         self,
         api_key: str = "",
-        base_url: str = "https://api.creativetagger.dev",
+        base_url: str = "https://api.creativetagger.ai",
         timeout: float = 120.0,
     ):
         self.base_url = base_url.rstrip("/")
@@ -175,9 +175,9 @@ class AnalyzeResult:
 
     Access any field as an attribute:
         result.format           → "video"
-        result.visual.hook_type → "UGC"
-        result.naming.default   → "NEMAH_UGC_Creator_LoFi_..."
-        result.messaging_angle  → "ProbSol"
+        result.attributes.hook_type       → "Question"
+        result.naming.default             → "Brand_UGC_Question_..."
+        result.attributes.messaging_angle → "Pain Point"
     """
 
     def __init__(self, data: dict):
