@@ -218,6 +218,37 @@ def test_library_requests():
     assert_request(requests[7], "POST", "/auth/library/1/share")
 
 
+def test_get_library_media_follows_redirect_to_source_url():
+    """Externally-hosted media is served as a 302 to the original source_url.
+    The SDK must follow the redirect and return the real bytes, not the
+    (empty) redirect response body."""
+    source_url = "https://cdn.example.com/media/ad-1.mp4"
+    requests = []
+
+    def handler(request):
+        requests.append(request)
+        if request.url.path == "/auth/library/1/media":
+            # API redirects to the externally-hosted original.
+            return httpx.Response(302, headers={"Location": source_url}, request=request)
+        if str(request.url) == source_url:
+            return httpx.Response(200, content=b"real-media-bytes", request=request)
+        raise AssertionError(f"unexpected request to {request.url}")
+
+    client = CreativeTagger(
+        api_key="ct_test",
+        base_url="https://api.test",
+        transport=httpx.MockTransport(handler),
+    )
+
+    media = client.get_library_media(1, brand_name="Acme")
+
+    assert media == b"real-media-bytes"
+    # First hop hits the API media endpoint; second hop follows to the CDN.
+    assert requests[0].url.path == "/auth/library/1/media"
+    assert str(requests[-1].url) == source_url
+    assert len(requests) == 2
+
+
 def test_reports_hooks_lineage_demographics_requests():
     client, requests = make_client()
 

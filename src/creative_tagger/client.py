@@ -462,11 +462,17 @@ class CreativeTagger:
         *,
         brand_name: str | None = None,
     ) -> bytes:
-        """Download the original analyzed media bytes, when available."""
+        """Download the original analyzed media bytes, when available.
+
+        Externally-hosted media (rows with a ``source_url``) is served as an
+        HTTP redirect to that source, so redirects must be followed to reach
+        the actual bytes rather than returning an empty redirect body.
+        """
         resp = self._request(
             "GET",
             f"/auth/library/{analysis_id}/media",
             params={"brand_name": brand_name},
+            follow_redirects=True,
         )
         return resp.content
 
@@ -813,8 +819,13 @@ class CreativeTagger:
         data: Mapping[str, Any] | None = None,
         files: Any | None = None,
         timeout: float | None = None,
+        follow_redirects: bool = False,
     ) -> httpx.Response:
-        with httpx.Client(timeout=self.timeout if timeout is None else timeout, transport=self._transport) as client:
+        with httpx.Client(
+            timeout=self.timeout if timeout is None else timeout,
+            transport=self._transport,
+            follow_redirects=follow_redirects,
+        ) as client:
             resp = client.request(
                 method,
                 f"{self.base_url}{path}",
