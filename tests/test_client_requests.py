@@ -5,6 +5,7 @@ import httpx
 import pytest
 
 from creative_tagger import CreativeTagger
+from creative_tagger.client import AnalyzeResult
 
 
 def make_client(responses=None):
@@ -224,8 +225,10 @@ def test_reports_hooks_lineage_demographics_requests():
     client.creative_strategy_report(
         brand_name="Acme",
         date_preset="last_30d",
-        rows="hook_type",
-        columns="format",
+        # Taxonomy v2 canonical axis keys: visual_format (execution style)
+        # and media_type (auto-detected format) are separate dimensions.
+        rows="visual_format",
+        columns="media_type",
         metrics="spend,roas",
         metric_preset="scale",
         status_focus="winner",
@@ -238,7 +241,7 @@ def test_reports_hooks_lineage_demographics_requests():
         learning_spend=250,
         fatigue_minimum_calendar_days=7,
         limit=12,
-        watch_group_by="creative_type",
+        watch_group_by="ad_type",
         watch_metric="roas",
         watch_signal_focus="winner",
         watch_trajectory_focus="rising",
@@ -266,8 +269,8 @@ def test_reports_hooks_lineage_demographics_requests():
     assert query(requests[0]) == {
         "brand_name": "Acme",
         "date_preset": "last_30d",
-        "rows": "hook_type",
-        "columns": "format",
+        "rows": "visual_format",
+        "columns": "media_type",
         "metrics": "spend,roas",
         "metric_preset": "scale",
         "status_focus": "winner",
@@ -280,7 +283,7 @@ def test_reports_hooks_lineage_demographics_requests():
         "learning_spend": "250",
         "fatigue_minimum_calendar_days": "7",
         "limit": "12",
-        "watch_group_by": "creative_type",
+        "watch_group_by": "ad_type",
         "watch_metric": "roas",
         "watch_signal_focus": "winner",
         "watch_trajectory_focus": "rising",
@@ -413,3 +416,85 @@ def test_api_errors_raise_detail_message():
 
     with pytest.raises(httpx.HTTPStatusError, match="workspace already exists"):
         client.rename_workspace("Acme", "Existing")
+
+
+def _taxonomy_v2_response():
+    """An AnalyzeResponse shaped like the taxonomy v2 API: media type at the
+    top level (`format`), asset/visual split under `attributes`, canonical
+    `messaging_angle`, and standard/full/compact/reporting naming."""
+    return {
+        "format": "video",
+        "attributes": {
+            "asset_type": "UGC",
+            "visual_format": "Talking Head",
+            "visual_style": "Lo-Fi",
+            "talent": "Creator",
+            "talent_age_group": "age_25_34",
+            "talent_gender": "female",
+            "audience": "New Moms",
+            "messaging_angle": "Pain Point",
+            "seasonality": "Evergreen",
+            "offer_type": "Percent Off",
+            "hook_type": "Curiosity Gap",
+            "hook_text": "Wait until you see this",
+            "cta": "Shop Now",
+            "audio_type": "Voiceover + Music",
+            "voiceover_tone": "Conversational",
+            "emotion": "Curiosity",
+            "aspect_ratio": "9x16",
+            "duration": "30s",
+            "duration_seconds": 28,
+        },
+        "naming": {
+            "standard": "BRAND_UGC_TalkingHead_Creator_CuriosityGap_ShopNow_9x16_V1",
+            "compact": "BRAND_TalkingHead_Creator_ShopNow_9x16_V1",
+        },
+        "analysis_id": 42,
+        "model_used": "gemini-2.5-flash",
+        "processing_time_ms": 1234,
+    }
+
+
+def test_analyze_result_attribute_access_uses_v2_paths():
+    result = AnalyzeResult(_taxonomy_v2_response())
+
+    assert result.format == "video"
+    assert result.attributes.asset_type == "UGC"
+    assert result.attributes.visual_format == "Talking Head"
+    assert result.attributes.messaging_angle == "Pain Point"
+    assert result.naming.standard.startswith("BRAND_UGC_TalkingHead")
+    assert "hook=Curiosity Gap" in repr(result)
+    assert "format=video" in repr(result)
+
+
+def test_to_row_flattens_taxonomy_v2_dimensions():
+    row = AnalyzeResult(_taxonomy_v2_response()).to_row()
+
+    # Media/asset/visual are three separate v2 dimensions.
+    assert row["media_type"] == "video"
+    assert row["format"] == "video"
+    assert row["asset_type"] == "UGC"
+    assert row["visual_format"] == "Talking Head"
+    # messaging_angle is the canonical angle key, read from attributes.
+    assert row["messaging_angle"] == "Pain Point"
+    assert row["hook_type"] == "Curiosity Gap"
+    assert row["talent"] == "Creator"
+    assert row["duration_seconds"] == 28
+    assert row["naming_standard"].startswith("BRAND_UGC_TalkingHead")
+    assert row["naming_compact"].startswith("BRAND_TalkingHead")
+    assert row["analysis_id"] == 42
+    # Pre-v2 export keys are gone: creative_type/production_type were renamed
+    # to visual_format/asset_type, and naming.default never exists in v2.
+    assert "creative_type" not in row
+    assert "production_type" not in row
+    assert "naming_default" not in row
+
+
+def test_to_row_is_none_safe_for_sparse_responses():
+    row = AnalyzeResult({"format": "image"}).to_row()
+
+    assert row["media_type"] == "image"
+    assert row["visual_format"] is None
+    assert row["asset_type"] is None
+    assert row["messaging_angle"] is None
+    assert row["naming_standard"] is None

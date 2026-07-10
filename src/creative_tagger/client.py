@@ -904,11 +904,20 @@ class CreativeTagger:
 class AnalyzeResult:
     """Wrapper around the API response with attribute access.
 
+    Taxonomy v2 splits three dimensions the old model mixed together:
+    Media Type (`result.format` — the auto-detected creative format, never
+    AI-classified), Asset Type (`result.attributes.asset_type` — production
+    class), and Visual Format (`result.attributes.visual_format` — execution
+    style; "Static Image" and "Carousel" are media types, no longer valid
+    values here). `messaging_angle` is the canonical angle key.
+
     Access any field as an attribute:
-        result.format           -> "video"
-        result.visual.hook_type -> "UGC"
-        result.naming.default   -> "NEMAH_UGC_Creator_LoFi_..."
-        result.messaging_angle  -> "ProbSol"
+        result.format                     -> "video"
+        result.attributes.asset_type      -> "UGC"
+        result.attributes.visual_format   -> "Talking Head"
+        result.attributes.hook_type       -> "Curiosity Gap"
+        result.attributes.messaging_angle -> "Pain Point"
+        result.naming.standard            -> "BRAND_UGC_TalkingHead_..."
     """
 
     def __init__(self, data: dict):
@@ -924,8 +933,8 @@ class AnalyzeResult:
 
     def __repr__(self):
         fmt = self._data.get("format", "?")
-        hook = self._data.get("visual", {}).get("hook_type", "?")
-        naming = self._data.get("naming", {}).get("default", "?")
+        hook = (self._data.get("attributes") or {}).get("hook_type", "?")
+        naming = (self._data.get("naming") or {}).get("standard", "?")
         return f"<AnalyzeResult format={fmt} hook={hook} naming={naming}>"
 
     def to_dict(self) -> dict:
@@ -933,35 +942,40 @@ class AnalyzeResult:
         return self._data
 
     def to_row(self) -> dict:
-        """Flatten to a single-level dict suitable for CSV/DataFrame."""
-        v = self._data.get("visual", {})
-        n = self._data.get("naming", {})
-        a = self._data.get("audio") or {}
+        """Flatten to a single-level dict suitable for CSV/DataFrame.
+
+        Column names follow the taxonomy v2 canonical dimension keys:
+        `media_type` (the auto-detected top-level `format`, duplicated under
+        both keys), `asset_type` (production class, previously exported as
+        `production_type`), `visual_format` (execution style, previously
+        exported as `creative_type`), and `messaging_angle`.
+        """
+        a = self._data.get("attributes") or {}
+        n = self._data.get("naming") or {}
         return {
             "format": self._data.get("format"),
-            "hook_type": v.get("hook_type"),
-            "hook_style": self._data.get("hook_style"),
-            "visual_style": v.get("visual_style"),
-            "talent_type": v.get("talent_type"),
-            "cta_type": v.get("cta_type"),
-            "cta_placement": self._data.get("cta_placement"),
-            "primary_emotion": v.get("primary_emotion"),
-            "messaging_angle": self._data.get("messaging_angle"),
-            "creative_type": self._data.get("creative_type"),
-            "production_type": self._data.get("production_type"),
-            "product_presence": self._data.get("product_presence"),
-            "offer_type": self._data.get("offer_type"),
-            "offer_detail": self._data.get("offer_detail"),
-            "brand_presence": self._data.get("brand_presence"),
-            "seasonality": self._data.get("seasonality"),
-            "text_overlay_treatment": self._data.get("text_overlay_treatment"),
-            "social_proof_elements": self._data.get("social_proof_elements"),
-            "aspect_ratio": v.get("aspect_ratio"),
-            "duration_seconds": v.get("duration_seconds"),
-            "video_length_bucket": self._data.get("video_length_bucket"),
+            "media_type": self._data.get("format"),
+            "asset_type": a.get("asset_type"),
+            "visual_format": a.get("visual_format"),
+            "visual_style": a.get("visual_style"),
+            "talent": a.get("talent"),
+            "talent_age_group": a.get("talent_age_group"),
+            "talent_gender": a.get("talent_gender"),
+            "audience": a.get("audience"),
+            "messaging_angle": a.get("messaging_angle"),
+            "seasonality": a.get("seasonality"),
+            "offer_type": a.get("offer_type"),
+            "hook_type": a.get("hook_type"),
+            "hook_text": a.get("hook_text"),
+            "cta": a.get("cta"),
             "audio_type": a.get("audio_type"),
-            "audio_shortcode": self._data.get("audio_shortcode"),
-            "naming_default": n.get("default"),
+            "voiceover_tone": a.get("voiceover_tone"),
+            "emotion": a.get("emotion"),
+            "aspect_ratio": a.get("aspect_ratio"),
+            "duration": a.get("duration"),
+            "duration_seconds": a.get("duration_seconds"),
+            "analysis_id": self._data.get("analysis_id"),
+            "naming_standard": n.get("standard"),
             "naming_compact": n.get("compact"),
             "model_used": self._data.get("model_used"),
             "processing_time_ms": self._data.get("processing_time_ms"),

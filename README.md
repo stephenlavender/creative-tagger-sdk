@@ -37,14 +37,15 @@ ct.sync_meta(brand_name=workspace, date_preset="last_30d")
 
 # Analyze a video ad
 result = ct.analyze("./ad_video.mp4", brand=workspace)
-print(result.naming.default)
-# → BRAND_UGC_Creator_LoFi_VOMus-Pop-Conv_ShopNow_9x16_30s_V1
+print(result.naming.standard)
+# → BRAND_UGC_TalkingHead_Creator_CuriosityGap_ShopNow_9x16_V1
 
-print(result.visual.hook_type)    # → UGC
-print(result.messaging_angle)     # → ProbSol
-print(result.creative_type)       # → Testimonial
-print(result.production_type)     # → LoFiUGC
-print(result.offer_type)          # → PctOff
+print(result.format)                             # → video (Media Type — auto-detected)
+print(result.attributes.asset_type)              # → UGC (production class)
+print(result.attributes.visual_format)           # → Talking Head (execution style)
+print(result.attributes.hook_type)               # → Curiosity Gap
+print(result.attributes.messaging_angle)         # → Pain Point
+print(result.attributes.offer_type)              # → Percent Off
 
 # Use workspace-scoped library, reports, hooks, lineage, and demographics.
 library = ct.list_library(brand_name=workspace)
@@ -53,6 +54,24 @@ digest = ct.weekly_digest_report(brand_name=workspace)
 taxonomy = ct.performance_by_taxonomy(brand_name=workspace)
 demographics = ct.performance_demographics(brand_name=workspace)
 ```
+
+## Taxonomy v2
+
+Taxonomy v2 separates three dimensions the old model mixed together:
+
+- **Media Type** (`result.format`) — video, image, carousel, landing_page, email,
+  long_video. Auto-detected from the creative itself, never AI-classified.
+- **Asset Type** (`result.attributes.asset_type`) — production class: UGC,
+  Lifestyle, Studio, High Production, etc. Previously exported by this SDK as
+  `production_type`.
+- **Visual Format** (`result.attributes.visual_format`) — execution style:
+  Talking Head, Testimonial, Demo, etc. Previously exported as `creative_type`.
+  `Static Image` and `Carousel` are media types and are no longer valid Visual
+  Format values.
+
+`messaging_angle` (`result.attributes.messaging_angle`) is the canonical angle
+key. `to_row()` exports one column per canonical dimension key, including
+`media_type`, `asset_type`, and `visual_format`.
 
 ## Batch Analysis
 
